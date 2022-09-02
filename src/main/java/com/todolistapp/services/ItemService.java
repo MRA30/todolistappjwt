@@ -30,6 +30,7 @@ public class ItemService {
             itemResponse.getId(),
             itemResponse.getItem(),
             itemResponse.isCek(),
+            itemResponse.getTodoId(),
             itemResponse.getImage()
         );
 
@@ -47,7 +48,6 @@ public class ItemService {
                     switch (change){
                         case "item": item.setItem((String) value); break;
                         case "cek": item.setCek((boolean) value); break;
-                        case "image": item.setImage((String) value); break;
                     }
                 }
         );
@@ -57,6 +57,7 @@ public class ItemService {
             item.getId(),
             item.getItem(),
             item.isCek(),
+            item.getTodoId(),
             item.getImage()
         );
 
@@ -69,6 +70,7 @@ public class ItemService {
             item.get().getId(),
             item.get().getItem(),
             item.get().isCek(),
+            item.get().getTodoId(),
             item.get().getImage()
         );
     }

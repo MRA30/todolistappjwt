@@ -16,7 +16,6 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import com.todolistapp.dto.request.ItemRequest;
-import com.todolistapp.dto.request.SearchRequest;
 import com.todolistapp.dto.request.TodoRequest;
 import com.todolistapp.dto.response.ItemResponse;
 import com.todolistapp.dto.response.TodoResponse;
@@ -24,8 +23,9 @@ import com.todolistapp.models.entity.Item;
 import com.todolistapp.models.entity.Todo;
 import com.todolistapp.models.repos.ItemRepo;
 import com.todolistapp.models.repos.TodoRepo;
-import static org.springframework.data.jpa.domain.Specification.*;
-import static com.todolistapp.models.specification.TodoSpecification.*;
+import com.todolistapp.models.specification.TodoSpecification;
+
+import org.springframework.data.jpa.domain.Specification;
 
 @Service
 @Transactional
@@ -40,10 +40,14 @@ public class TodoService {
     @Autowired 
     private UserService userService;
 
+    @Autowired 
+    private TodoSpecification todoSpecification;
+
     public Todo createTodo(TodoRequest todoRequest){
         Todo todo = new Todo();
         todo.setTodo(todoRequest.getTodo());
         todo.setUserId(userService.getId());
+        todo.setItems(todoRequest.getItems());
         return todoRepo.save(todo);
     }
 
@@ -85,6 +89,7 @@ public class TodoService {
         Item item = new Item();
         item.setItem(itemRequest.getItem());
         item.setCek(itemRequest.isCek());
+        item.setTodoId(id);
         todo.ifPresent(value -> value.getItems().add(item));
 
         TodoRequest todoRequest = new TodoRequest();
@@ -106,7 +111,6 @@ public class TodoService {
                 (change, value) -> {
                     switch (change){
                         case "todo":  todo.setTodo((String) value); break;
-                        case "image": todo.setImage((String) value); break;
                     }
                 }
         );
@@ -122,7 +126,7 @@ public class TodoService {
         return response;
     }
 
-    public PageImpl<ItemResponse> findAllItemByTodo(Long todoId, Integer page, Integer size, String sortBy){
+    public Page<ItemResponse> findAllItemByTodo(Long todoId, Integer page, Integer size, String sortBy){
         Pageable pageable = PageRequest.of(page, size, Sort.by(sortBy));
         Page<Item> listItem = itemRepo.findItemByTodo(todoId, pageable);
         int totalElements = (int) listItem.getTotalElements();
@@ -136,13 +140,15 @@ public class TodoService {
                     .stream().map(item -> new ItemResponse(item.getId(),
                                                             item.getItem(),
                                                             item.isCek(), 
+                                                            item.getTodoId(),
                                                             item.getImage()))
                                                             .collect(Collectors.toList()), pageable, totalElements);
     }
 
-    public PageImpl<TodoResponse> searchTodoContainsName(long userId, SearchRequest searchRequest, Integer page, Integer size, String sortBy){
+    public Page<TodoResponse> searchTodoContainsName(long userId, String todoName, Integer page, Integer size, String sortBy){
         Pageable pageable = PageRequest.of(page, size, Sort.by(sortBy));
-        Page<Todo> listTodo = todoRepo.findAll(where(filterByUserId(userId)).and(where(searchTodoName(searchRequest.getSearchKey()))), pageable);
+        Page<Todo> listTodo = todoRepo.findAll(Specification.where(todoSpecification.filterByUserId(userId)
+                                                            .and(todoSpecification.searchTodoName(todoName))), pageable);
         int totalElements = (int) listTodo.getTotalElements();
         // return listTodo.stream().map(todo -> new TodoResponse(
         //     todo.getId(),
@@ -158,6 +164,17 @@ public class TodoService {
                                                             todo.getItems(),
                                                             todo.getImage()))
                                                             .collect(Collectors.toList()), pageable, totalElements);
+    }
+
+    public List<TodoResponse> listAll(Long userId) {
+        List<Todo> todos = todoRepo.findAll(Specification.where(todoSpecification.filterByUserId(userId)), Sort.by("id").ascending() );
+        return todos.stream().map(todo -> new TodoResponse(
+                                    todo.getId(),
+                                    todo.getTodo(),
+                                    todo.getUserId(),
+                                    todo.getItems(),
+                                    todo.getImage()
+        )).collect(Collectors.toList());
     }
 
 }

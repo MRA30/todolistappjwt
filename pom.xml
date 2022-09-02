@@ -31,10 +31,16 @@
 			<artifactId>hibernate-jpamodelgen</artifactId>
 		</dependency>
 
-		<dependency>
+		 <dependency>
 			<groupId>org.apache.poi</groupId>
 			<artifactId>poi-ooxml</artifactId>
-			<version>4.1.0</version>
+			<version>4.1.1</version>
+		 </dependency>
+
+		 <dependency>
+			<groupId>org.dhatim</groupId>
+			<artifactId>fastexcel-reader</artifactId>
+			<version>0.12.3</version>
 		</dependency>
 
 		<dependency>

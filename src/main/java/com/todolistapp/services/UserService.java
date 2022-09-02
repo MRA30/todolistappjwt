@@ -37,7 +37,7 @@ public class UserService implements UserDetailsService {
         return SecurityContextHolder.getContext().getAuthentication();
     }
 
-    public User getEmail(){
+    public User getUser(){
         return userRepo.findByEmail(principal().getName());
     }
 

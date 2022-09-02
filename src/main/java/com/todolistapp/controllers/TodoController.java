@@ -1,12 +1,15 @@
 package com.todolistapp.controllers;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
+import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.Errors;
@@ -20,16 +23,20 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.todolistapp.dto.ResponseData;
 import com.todolistapp.dto.request.ItemRequest;
-import com.todolistapp.dto.request.SearchRequest;
+
 import com.todolistapp.dto.request.TodoRequest;
 import com.todolistapp.dto.response.ItemResponse;
+import com.todolistapp.dto.response.TodoExportResponse;
 import com.todolistapp.dto.response.TodoResponse;
 import com.todolistapp.services.ItemService;
 import com.todolistapp.services.TodoService;
 import com.todolistapp.services.UserService;
+import com.todolistapp.util.ExcelImporter;
+import com.todolistapp.util.TodoExcelExporter;
 
 @RestController
 @RequestMapping("/api/todos")
@@ -43,6 +50,9 @@ public class TodoController {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private ExcelImporter excelImporter;
 
     @PostMapping
     public ResponseEntity<ResponseData<TodoResponse>> createTodo( @Valid @RequestBody TodoRequest todoRequest, Errors errors){
@@ -76,7 +86,7 @@ public class TodoController {
             todoService.addItem(itemRequest, id);
             return ResponseEntity.ok(null);
         }
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(null);
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(null);
     }
 
     @PatchMapping("/{id}")
@@ -90,7 +100,7 @@ public class TodoController {
             responseData.getMessages().add("Todo Updated");
             return ResponseEntity.ok(responseData);
         }
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(null);
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(null);
     }
 
     @DeleteMapping("/{id}")
@@ -106,21 +116,21 @@ public class TodoController {
             }
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
         }
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(null);
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(null);
     }
 
     @PostMapping("/todo/{id}")
-    public ResponseEntity<PageImpl<ItemResponse>> findItemByTodoId(@PathVariable("id") Long id, 
+    public ResponseEntity<Page<ItemResponse>> findItemByTodoId(@PathVariable("id") Long id, 
                                                                 @RequestParam(defaultValue = "0") Integer page, 
                                                                 @RequestParam(defaultValue = "10") Integer size,
                                                                 @RequestParam(defaultValue = "id") String sortBy){
         TodoResponse todo = todoService.findById(id); 
         if (todo != null) {
             if(todo.getUserId() == userService.getId()){
-                PageImpl<ItemResponse> response = todoService.findAllItemByTodo(id, page, size, sortBy);
+                Page<ItemResponse> response = todoService.findAllItemByTodo(id, page, size, sortBy);
                 return ResponseEntity.ok(response);
             }    
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(null);                               
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(null);                               
         }
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
         
@@ -133,20 +143,47 @@ public class TodoController {
     }
 
     @GetMapping("/filter")
-    public ResponseEntity<ResponseData<PageImpl<TodoResponse>>> findNameContainsTodo(@RequestBody SearchRequest searchRequest,
+    public ResponseEntity<ResponseData<Page<TodoResponse>>> findNameContainsTodo(@RequestParam(defaultValue = "") String search,
                                                                                     @RequestParam(defaultValue = "0") Integer page, 
                                                                                     @RequestParam(defaultValue = "10") Integer size,
                                                                                     @RequestParam(defaultValue = "id") String sortBy){
-        ResponseData<PageImpl<TodoResponse>> responseData = new ResponseData<>();
+        ResponseData<Page<TodoResponse>> responseData = new ResponseData<>();
         try{
             long userId = userService.getId();
-            PageImpl<TodoResponse> response = todoService.searchTodoContainsName(userId, searchRequest, page, size, sortBy);
+            Page<TodoResponse> response = todoService.searchTodoContainsName(userId, search, page, size, sortBy);
             responseData.setStatus(true);
             responseData.setPayload(response);
             responseData.getMessages().add("Data Loaded");
             return ResponseEntity.ok(responseData);
         }catch (Exception e){
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+            responseData.getMessages().add(e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(responseData);
         }
     }
+
+    @GetMapping("/export/excel")
+    public void exportToExcel(HttpServletResponse response) throws IOException{
+        long userId = userService.getId();
+        List<TodoResponse> listTodo = todoService.listAll(userId);
+        String username = userService.getUser().getFullName();
+        List<TodoExportResponse> todoExportResponse =  listTodo.stream().map(todo -> new TodoExportResponse(
+            todo.getId(),
+            todo.getTodo(),
+            username,
+            todo.getItems(),
+            todo.getImage()
+        )).collect(Collectors.toList());
+
+        // response.setContentType("application/octet-stream");
+        // response.addHeader("Content-Disposition", "attachment; filename=contacts.xlsx");
+
+        TodoExcelExporter excelExporter = new TodoExcelExporter(todoExportResponse);
+        excelExporter.export(response);
+    }
+
+    // @PostMapping("/import/excel")
+    // public void importExcel(MultipartFile file) throws IOException{
+    //     long id = userService.getId();
+    //     excelImporter.importExcel(file, id);
+    // }
 }

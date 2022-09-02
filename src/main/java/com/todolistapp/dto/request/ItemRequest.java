@@ -1,13 +1,16 @@
 package com.todolistapp.dto.request;
 
+import com.todolistapp.models.entity.Image;
+
 import lombok.Data;
 
 @Data
 public class ItemRequest {
 
-    private long id;
+    private Long id;
     private String item;
     private boolean cek;
-    private String image;
+    private Long todoId;
+    private Image image;
     
 }

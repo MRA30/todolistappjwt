@@ -1,22 +1,21 @@
-package com.todolistapp.dto.request;
+package com.todolistapp.dto.response;
 
 import java.util.List;
-
-import javax.validation.constraints.NotEmpty;
 
 import com.todolistapp.models.entity.Image;
 import com.todolistapp.models.entity.Item;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
-public class TodoRequest {
-
+@AllArgsConstructor
+@NoArgsConstructor
+public class TodoExportResponse {
     private long id;
-    @NotEmpty(message = "todo is required")
     private String todo;
-    private long userId;
+    private String username;
     private List<Item> items;
     private Image image;
-    
 }

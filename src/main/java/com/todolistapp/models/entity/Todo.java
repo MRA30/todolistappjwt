@@ -38,6 +38,8 @@ public class Todo implements Serializable {
     @ToString.Exclude
     private List<Item> items;
 
-    private String Image;
+    @OneToOne(cascade = CascadeType.ALL)
+    @JoinColumn(name = "image_id", referencedColumnName = "id")
+    private Image image;
     
 }

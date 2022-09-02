@@ -1,5 +1,7 @@
 package com.todolistapp.dto.response;
 
+import com.todolistapp.models.entity.Image;
+
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
@@ -10,5 +12,6 @@ public class ItemResponse {
     private long id;
     private String item;
     private boolean cek;
-    private String image;
+    private Long todoId;
+    private Image image;
 }

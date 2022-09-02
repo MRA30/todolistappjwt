@@ -2,6 +2,7 @@ package com.todolistapp.dto.response;
 
 import java.util.List;
 
+import com.todolistapp.models.entity.Image;
 import com.todolistapp.models.entity.Item;
 
 import lombok.AllArgsConstructor;
@@ -17,6 +18,6 @@ public class TodoResponse {
     private String todo;
     private long userId;
     private List<Item> items;
-    private String image;
+    private Image image;
     
 }
